@@ -5,7 +5,7 @@ services:
     plan: free
     image:
       # Versión fija (la que corre hoy). Actualiza este tag a propósito.
-      url: docker.io/n8nio/n8n:2.45.6
+      url: docker.io/n8nio/n8n:stable
     healthCheckPath: /healthz
     envVars:
       # --- URLs públicas ---
