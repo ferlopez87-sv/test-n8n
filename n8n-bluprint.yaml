@@ -4,38 +4,65 @@ services:
     runtime: image
     plan: free
     image:
-      url: docker.io/n8nio/n8n:latest
+      # Versión fija (la que corre hoy). Actualiza este tag a propósito.
+      url: docker.io/n8nio/n8n:2.45.6
+    healthCheckPath: /healthz
     envVars:
+      # --- URLs públicas ---
       - key: WEBHOOK_URL
-        fromService:
-          type: web
-          name: n8n
-          property: host
+        value: https://n8n-buyy.onrender.com/
+      - key: N8N_EDITOR_BASE_URL
+        value: https://n8n-buyy.onrender.com/
+      - key: N8N_HOST
+        value: n8n-buyy.onrender.com
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_PORT
+        value: "5678"
+      - key: N8N_PROXY_HOPS
+        value: "1"
+
+      # --- Seguridad ---
       - key: N8N_ENCRYPTION_KEY
         sync: false
+
+      # --- Base de datos: Supabase (Session pooler, IPv4, puerto 5432) ---
+      # Host, usuario y password se escriben en el dashboard de Render (sync: false),
+      # nunca en el repositorio.
       - key: DB_TYPE
         value: postgresdb
-      - key: DB_POSTGRESDB_HOST
-        fromDatabase:
-          name: n8n-db
-          property: host
+      - key: DB_POSTGRESDB_HOST      # aws-N-REGION.pooler.supabase.com
+        sync: false
       - key: DB_POSTGRESDB_PORT
-        value: "5432"
+        value: "5432"                # 5432 = session mode. NO usar 6543.
       - key: DB_POSTGRESDB_DATABASE
-        fromDatabase:
-          name: n8n-db
-          property: database
-      - key: DB_POSTGRESDB_USER
-        fromDatabase:
-          name: n8n-db
-          property: user
+        value: postgres
+      - key: DB_POSTGRESDB_USER      # postgres.<PROJECT-REF>
+        sync: false
       - key: DB_POSTGRESDB_PASSWORD
-        fromDatabase:
-          name: n8n-db
-          property: password
+        sync: false
+      # Schema propio: las tablas de n8n no quedan en "public" (expuesto por la API de Supabase)
+      - key: DB_POSTGRESDB_SCHEMA
+        value: n8n
+      - key: DB_POSTGRESDB_SSL_ENABLED
+        value: "true"
+      # El pooler usa una CA propia de Supabase. false = cifrado sin verificar el certificado
+      # (aceptable para aprender; para producción usa DB_POSTGRESDB_SSL_CA con el certificado raíz).
+      - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+        value: "false"
 
-databases:
-  - name: n8n-db
-    databaseName: n8n
-    user: n8n_user
-    plan: free
+      # --- Task runner (JS) ---
+      - key: N8N_RUNNERS_GRANT_TOKEN_TTL
+        value: "180"
+      - key: N8N_RUNNERS_TASK_TIMEOUT
+        value: "300"
+
+      # --- Menos consumo en la instancia free ---
+      - key: N8N_DIAGNOSTICS_ENABLED
+        value: "false"
+      - key: N8N_VERSION_NOTIFICATIONS_ENABLED
+        value: "false"
+      - key: N8N_PERSONALIZATION_ENABLED
+        value: "false"
+
+# Sin sección "databases": la base vive en Supabase.
